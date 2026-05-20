@@ -5,17 +5,26 @@ from sklearn.metrics import roc_auc_score
 import torchvision.models as models
 
 class PerceptualLoss(nn.Module):
+    """
+    Perceptual Loss, использующий признаки VGG16 для сравнения изображений.
+    Эффективен для задач генерации и реконструкции, где важна не попиксельная,
+    а структурная схожесть.
+    """
     def __init__(self, device):
         super().__init__()
+        # Загружаем предобученный VGG16 и используем его как экстрактор признаков
         vgg = models.vgg16(weights=models.VGG16_Weights.IMAGENET1K_V1).features.to(device)
+        # Используем первые 9 слоев для извлечения признаков
         self.feature_extractor = nn.Sequential(*list(vgg.children())[:9]).eval()
         
+        # Замораживаем веса экстрактора признаков
         for param in self.feature_extractor.parameters():
             param.requires_grad = False
             
         self.criterion = nn.L1Loss()
 
     def forward(self, x, y):
+        # Вычисляем признаки для входного и целевого изображений
         features_x = self.feature_extractor(x)
         features_y = self.feature_extractor(y)
         return self.criterion(features_x, features_y)
@@ -24,12 +33,14 @@ def train_autoencoder(model, train_loader, num_epochs=50, lr=1e-3, device=None, 
     if device is None:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         
+    # Перемещаем модель на указанное устройство
     model = model.to(device)
     mse_criterion = nn.MSELoss()
     l1_criterion = nn.L1Loss()
     
     if use_expanded_loss:
         perceptual_criterion = PerceptualLoss(device)
+        print("Используется гибридная функция потерь (L1 + Perceptual).")
         
     optimizer = Adam(model.parameters(), lr=lr, weight_decay=1e-5)
     model.train()
@@ -41,9 +52,11 @@ def train_autoencoder(model, train_loader, num_epochs=50, lr=1e-3, device=None, 
             images = images.to(device)
             optimizer.zero_grad()
             
+            # Прямой проход
             outputs = model(images)
             
             if use_expanded_loss:
+                # Комбинированная функция потерь: L1 + Perceptual
                 loss = 0.2 * l1_criterion(outputs, images) + 0.8 * perceptual_criterion(outputs, images)
             else:
                 loss = mse_criterion(outputs, images)

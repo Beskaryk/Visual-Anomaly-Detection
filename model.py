@@ -1,6 +1,9 @@
 import torch.nn as nn
 
 class ConvAutoencoder(nn.Module):
+    """
+    Базовая сверточная автоэнкодерная модель для реконструкции изображений.
+    """
     def __init__(self):
         super().__init__()
         
@@ -40,6 +43,9 @@ class ConvAutoencoder(nn.Module):
         return self.decoder(self.encoder(x))
 
 class LargeConvAutoencoder(nn.Module):
+    """
+    Автоэнкодер увеличенной емкости, предназначенный для более сложных признаков.
+    """
     def __init__(self):
         super().__init__()
         
