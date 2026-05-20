@@ -66,7 +66,7 @@ def train_padim(train_loader, device):
         cov[i] = (diff @ diff.T) / (N - 1) + 0.01 * I
         
     # Вычисляем обратную матрицу ковариации (для расстояния Махаланобиса)
-    inv_cov = torch.linalg.inv(cov)
+    inv_cov = torch.linalg.pinv(cov)
     return mean, inv_cov, extractor
 
 def evaluate_padim(mean, inv_cov, extractor, test_loader, device):
